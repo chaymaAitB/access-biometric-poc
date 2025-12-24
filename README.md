@@ -1,109 +1,152 @@
-# Proof of Concept - Accès Biométrique
+# Multimodal Biometric Access API
 
-## 📌 Objectif
+## 📌 Project Overview
+This project is a **Secure Backend API** designed to control access to online exams using **Multimodal Biometrics** (Face, Voice, Fingerprint). It ensures that the examinee is the legitimate candidate through rigorous enrollment, authentication, and continuous verification processes.
 
-Cette application est un **Proof of Concept** pour un système d’accès biométrique.
-Elle permet de :
-
-* Tester l’authentification par **reconnaissance faciale** via webcam.
-* Afficher le résultat de l’authentification (**accès autorisé** ou **refusé**) sur une interface simple.
-* Préparer l’intégration future de tests supplémentaires comme la **voix** et l’**empreinte digitale**.
-
----
-
-## 🛠 Technologies utilisées
-
-* **Python 3** – langage principal.
-* **Django 5** – framework web (architecture MVC).
-* **HTML / CSS** – interface utilisateur simple.
-* **JavaScript / Face-api.js** – détection et reconnaissance faciale via webcam.
-* **Git / GitHub** – versionning du code.
+The system is built with **Privacy by Design** principles:
+*   **No raw biometric data storage**: Only encrypted descriptors are stored.
+*   **Encryption at rest**: Sensitive data is encrypted using high-standard cryptography.
+*   **Traceability**: Comprehensive logging of all access attempts.
 
 ---
 
-## 📁 Structure du projet
+## 🏗️ Technical Architecture
 
+### Stack
+*   **Language**: Python 3.10+
+*   **Framework**: FastAPI (High-performance, async support)
+*   **Database**: SQLite (Dev) / PostgreSQL (Prod)
+*   **ORM**: SQLAlchemy
+*   **Security**: Python-Jose (JWT), Passlib (Hashing), Cryptography (Fernet)
+
+### Project Structure
 ```
-biometric_project/
-├── biometric_project/      # Configuration Django
-├── biometric_app/          # Application principale
-│   ├── templates/
-│   │   ├── home.html
-│   │   └── biometric_test.html
-│   ├── static/
-│       ├── css/style.css
-│       └── js/face.js
-├── manage.py               # Commandes Django
-└── venv/                   # Environnement virtuel (non inclus dans Git)
+access-biometric-poc/
+├── app/
+│   ├── api/            # API Route handlers (v1)
+│   ├── core/           # Config & Security settings
+│   ├── db/             # Database connection & sessions
+│   ├── models/         # SQLAlchemy Database Models
+│   ├── schemas/        # Pydantic Data Schemas
+│   ├── services/       # Business Logic (Biometric extraction)
+│   └── main.py         # Application Entry Point
+├── django_poc/         # Legacy Django Proof of Concept (Archived)
+├── requirements.txt    # Project Dependencies
+└── .env                # Environment Variables (Secrets)
 ```
 
 ---
 
-## ⚡ Installation et lancement
+## 🚀 Installation & Setup
 
-### 1. Cloner le projet
+### 1. Prerequisites
+*   Python 3.10 or higher
+*   Virtualenv
+
+### 2. Setup Environment
 
 ```bash
-git clone https://github.com/<your-username>/biometric-poc.git
-cd biometric-poc
-```
-
-### 2. Créer et activer l’environnement virtuel
-
-* Windows :
-
-```bash
+# Create virtual environment
 python -m venv venv
+
+# Activate (Windows)
 venv\Scripts\activate
-```
 
-* macOS / Linux :
-
-```bash
-python -m venv venv
+# Activate (Linux/Mac)
 source venv/bin/activate
 ```
 
-### 3. Installer les dépendances
-
+### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-> Si `requirements.txt` n’existe pas, installer Django :
->
-> ```bash
-> pip install django
-> ```
+### 4. Configure Environment
+Create a `.env` file in the root directory:
+```ini
+PROJECT_NAME="Multimodal Biometric Access"
+API_V1_STR="/api/v1"
+SECRET_KEY="your_super_secret_jwt_key"
+ENCRYPTION_KEY="your_fernet_key"  # Generate using cryptography.fernet.Fernet.generate_key()
+DEBUG=True
+DATABASE_URL="sqlite:///./sql_app.db"
+```
 
-### 4. Appliquer les migrations
-
+### 5. Run the Server
 ```bash
-python manage.py migrate
+uvicorn app.main:app --reload
 ```
 
-### 5. Lancer le serveur
-
-```bash
-python manage.py runserver
-```
-
-### 6. Ouvrir l’application
-
-Ouvrir dans le navigateur :
-
-```
-http://127.0.0.1:8000/
-```
-
-* La **page principale** affiche le statut de l’authentification.
-* Le bouton **“Faire un test biométrique”** permet d’ouvrir la page pour tester la reconnaissance faciale via webcam.
+The API will be available at:
+*   **Root**: http://127.0.0.1:8000/
+*   **Docs (Swagger UI)**: http://127.0.0.1:8000/docs
+*   **ReDoc**: http://127.0.0.1:8000/redoc
 
 ---
 
-## 🔹 Notes
+## 🔑 Key Features (In Progress)
+*   **User Management**: Registration & Login.
+*   **Biometric Enrollment**:
+    *   `/api/v1/enroll/face`: Extract & Encrypt Face ID.
+    *   `/api/v1/enroll/voice`: Extract & Encrypt Voice Print.
+*   **Verification**:
+    *   `/api/v1/verify/authenticate/face`: 1:1 Matching.
+    *   `/api/v1/verify/identify/face`: 1:N Identification.
 
-* Les modèles Face-api.js doivent être placés dans :
-  `biometric_app/static/models/`
-  ou téléchargés depuis le dépôt officiel [face-api.js models](https://github.com/justadudewhohacks/face-api.js/tree/master/weights).
-* La reconnaissance faciale est un **exemple simple** pour le Proof of Concept.
+---
+
+## 🧪 Testing
+
+To run the end-to-end test workflow (Register -> Enroll -> Verify), ensure the server is running and then execute:
+
+```bash
+# 1. Start the server (if not running)
+uvicorn app.main:app --reload --port 8001
+
+# 2. Run the test script (in a separate terminal)
+python test_workflow.py
+```
+
+This script will:
+1.  Register a new user with a random email.
+2.  Enroll a face image.
+3.  Verify a face image against the stored biometric data.
+4.  Output "MATCH CONFIRMED" in Mock Mode when using the same filename prefix.
+
+### Web Test Console
+- Open `http://127.0.0.1:8001/` to use a simple UI for testing.
+- Step 1 registers a user; Steps 2–3 enroll and verify a face image.
+- The UI calls API endpoints under `/api/v1/...`.
+
+### Mock Mode (no face_recognition)
+- If `face_recognition` is not installed, the system runs in Mock Mode.
+- Mock descriptors are deterministic based on the file name prefix.
+- To produce a match: use two images starting with the same prefix, e.g. `user1_photo.jpg` and `user1_selfie.jpg`.
+- To produce a non-match: use different prefixes, e.g. `userA_1.jpg` vs `userB_1.jpg`.
+- Responses include `"mock_used": true` indicating Mock Mode is active.
+
+### Expected Results in Mock Mode
+- Enroll returns: `{"message":"Face enrolled successfully", "biometric_id": <id>, "mock_used": true}`.
+- Verify returns: `{"match": true, "score": 0.0, "threshold": 0.6, "mock_used": true}` when prefixes match.
+- Verify returns: `{"match": false, "score": <number>, "threshold": 0.6, "mock_used": true}` when prefixes differ.
+
+### Enable Real Face Recognition (Windows)
+- Option A (dlib/face_recognition):
+  - Install CMake and Visual Studio Build Tools (C++), add CMake to PATH.
+  - `pip install dlib==19.24.2`
+  - `pip install face_recognition`
+  - Restart the server; responses show `"mock_used": false` and metric `"euclidean"`.
+- Option B (InsightFace/ONNX, recommended on Windows):
+  - `pip install opencv-python onnxruntime insightface==0.7.3`
+  - First run downloads model files automatically.
+  - Restart the server; responses show `"mock_used": false` and metric `"cosine"`.
+
+### Real Matching Behavior
+- When using `face_recognition` (128-d embeddings), matching uses Euclidean distance with threshold `0.6`.
+- When using `insightface` (512-d embeddings), matching uses Cosine similarity with threshold `0.3`.
+- API responses include:
+  - `"metric"`: `"euclidean"` or `"cosine"`
+  - `"mock_used"`: `false` when real embeddings are used
+
+## 📂 Legacy
+The original Django POC has been moved to the `django_poc/` folder for reference.

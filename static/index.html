@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Access POC - Test Console</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .container {
+            display: grid;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            word-break: break-all;
+            display: none;
+        }
+        .result.error {
+            border-left-color: #e74c3c;
+            background-color: #fdedec;
+        }
+        .result.success {
+            border-left-color: #2ecc71;
+            background-color: #eafaf1;
+        }
+        .info-box {
+            background-color: #e8f4fd;
+            border: 1px solid #b6e0fe;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Biometric Access POC Testing</h1>
+    
+    <div class="container">
+        <!-- 1. Register -->
+        <div class="card">
+            <h2>1. Register User</h2>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="reg-email" placeholder="user@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="reg-password" value="secret123">
+            </div>
+            <div class="form-group">
+                <label>Full Name:</label>
+                <input type="text" id="reg-name" placeholder="John Doe">
+            </div>
+            <button onclick="register()">Register</button>
+            <div id="reg-result" class="result"></div>
+        </div>
+
+        <!-- 2. Enroll -->
+        <div class="card">
+            <h2>2. Enroll Face</h2>
+            <div class="info-box">
+                <strong>💡 Tip:</strong> Because `face_recognition` is missing on this server, we use a <strong>Filename-based Mock</strong>.
+                <br>To test a match, rename your files to start with the same prefix (e.g., `user1_photo.jpg` and `user1_selfie.jpg`).
+                <br>If filenames differ (e.g. `img1.jpg` vs `img2.jpg`), they will NOT match.
+            </div>
+            <div class="form-group">
+                <label>User ID:</label>
+                <input type="number" id="enroll-userid" placeholder="ID from Step 1">
+            </div>
+            <div class="form-group">
+                <label>Face Image:</label>
+                <input type="file" id="enroll-file" accept="image/*">
+            </div>
+            <button onclick="enroll()">Enroll Face</button>
+            <div id="enroll-result" class="result"></div>
+        </div>
+
+        <!-- 3. Verify -->
+        <div class="card">
+            <h2>3. Verify Face</h2>
+            <div class="form-group">
+                <label>User ID:</label>
+                <input type="number" id="verify-userid" placeholder="ID from Step 1">
+            </div>
+            <div class="form-group">
+                <label>Face Image:</label>
+                <input type="file" id="verify-file" accept="image/*">
+            </div>
+            <button onclick="verify()">Verify Face</button>
+            <div id="verify-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1';
+
+        async function register() {
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const fullName = document.getElementById('reg-name').value;
+            const resultDiv = document.getElementById('reg-result');
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, full_name: fullName })
+                });
+                
+                const data = await response.json();
+                showResult(resultDiv, data, response.ok);
+                
+                if (response.ok && data.id) {
+                    document.getElementById('enroll-userid').value = data.id;
+                    document.getElementById('verify-userid').value = data.id;
+                }
+            } catch (err) {
+                showResult(resultDiv, { error: err.message }, false);
+            }
+        }
+
+        async function enroll() {
+            const userId = document.getElementById('enroll-userid').value;
+            const fileInput = document.getElementById('enroll-file');
+            const resultDiv = document.getElementById('enroll-result');
+
+            if (!fileInput.files[0]) {
+                showResult(resultDiv, { error: "Please select a file" }, false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/enroll/face`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                showResult(resultDiv, data, response.ok);
+            } catch (err) {
+                showResult(resultDiv, { error: err.message }, false);
+            }
+        }
+
+        async function verify() {
+            const userId = document.getElementById('verify-userid').value;
+            const fileInput = document.getElementById('verify-file');
+            const resultDiv = document.getElementById('verify-result');
+
+            if (!fileInput.files[0]) {
+                showResult(resultDiv, { error: "Please select a file" }, false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/verify/authenticate/face`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                showResult(resultDiv, data, response.ok);
+            } catch (err) {
+                showResult(resultDiv, { error: err.message }, false);
+            }
+        }
+
+        function showResult(element, data, isSuccess) {
+            element.style.display = 'block';
+            element.className = isSuccess ? 'result success' : 'result error';
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // Auto-fill random email for convenience
+        document.getElementById('reg-email').value = `user_${Math.floor(Math.random()*10000)}@example.com`;
+    </script>
+</body>
+</html>

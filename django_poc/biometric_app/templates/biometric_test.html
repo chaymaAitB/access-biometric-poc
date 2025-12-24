@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Biométrique</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<h1>Test Biométrique</h1>
+
+<div style="position: relative; display: inline-block;">
+    <video id="video" width="400" height="300" autoplay muted></video>
+    <canvas id="overlay" style="position: absolute; top: 0; left: 0;"></canvas>
+</div>
+<br>
+<button onclick="startFaceDetection()">Tester le visage</button>
+
+<script src="{% static 'js/face-api.min.js' %}"></script>
+<script src="{% static 'js/face.js' %}"></script>
+
+</body>
+</html>
