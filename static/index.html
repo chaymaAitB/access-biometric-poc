@@ -3,101 +3,338 @@
 <head>
   <meta charset="utf-8">
   <title>Exam Verification Console</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ffd54f'/%3E%3Ctext x='16' y='21' font-size='16' text-anchor='middle' fill='%23000'%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
+    body { font-family: Arial, sans-serif; margin: 24px; background:#111; color:#eaeaea; }
     section { margin-bottom: 24px; }
     input, button { margin: 6px 0; }
-    .row { display: flex; gap: 24px; }
-    .card { padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
+    .row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .card { padding: 12px; border: 1px solid #333; border-radius: 8px; background:#1e1e1e; }
+    button { background:#2d6cdf; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+    button:hover { background:#1f57c4; }
+    input[type="number"], input[type="text"] { background:#222; color:#eaeaea; border:1px solid #333; border-radius:6px; padding:6px 8px; }
+    input[type="file"] { color:#eaeaea; }
+    .error { color:#ff6b6b; }
+    .ok { color:#8bc34a; }
+    .nav { display:flex; gap:12px; margin-bottom:16px; }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
   <h1>Exam Verification Console</h1>
-  <section class="card">
-    <h3>Start Exam Session</h3>
-    <label>User ID: <input id="userId" type="number" /></label><br/>
-    <label>Duration (minutes): <input id="duration" type="number" value="60"/></label><br/>
-    <button onclick="startSession()">Start Session</button>
-    <div id="sessionInfo"></div>
-  </section>
-  <div class="row">
+  <div class="nav">
+    <button onclick="show('page1')">1. Register & Enroll</button>
+    <button onclick="show('page2')">2. Start Verification & Exam</button>
+    <button onclick="show('page3')">3. Exam</button>
+    <button onclick="show('page4')">4. End Verification & Sign Off</button>
+  </div>
+  <div id="page1">
     <section class="card">
-      <h3>Start Verification</h3>
-      <div>Face: <input id="startFace" type="file" accept="image/*"/></div>
-      <button onclick="verifyFace('start')">Verify Face (Start)</button>
-      <div>Voice: <input id="startVoice" type="file" accept="audio/*"/></div>
-      <button onclick="verifyVoice('start')">Verify Voice (Start)</button>
-      <div id="startResult"></div>
+      <h3>Quick Register User</h3>
+      <button onclick="quickRegister()">Register Random User</button>
+      <div id="registerInfo"></div>
+      <div><label>User ID: <input id="userId" type="number" /></label></div>
     </section>
     <section class="card">
-      <h3>End Verification</h3>
-      <div>Face: <input id="endFace" type="file" accept="image/*"/></div>
-      <button onclick="verifyFace('end')">Verify Face (End)</button>
-      <div>Voice: <input id="endVoice" type="file" accept="audio/*"/></div>
-      <button onclick="verifyVoice('end')">Verify Voice (End)</button>
-      <div id="endResult"></div>
+      <h3>Enroll Biometrics</h3>
+      <div class="row">
+        <div>
+          <div><video id="cam" width="320" height="240" autoplay muted playsinline></video></div>
+          <button onclick="startCamera()">Start Camera</button>
+          <button onclick="captureFace()">Capture Face</button>
+          <button id="btnEnrollFace" onclick="enrollFace()">Enroll Face</button>
+          <div>Face: <input id="enrollFaceFile" type="file" accept="image/*"/></div>
+        </div>
+        <div>
+          <button onclick="startVoiceRecording()">Start Recording</button>
+          <button onclick="stopVoiceRecording()">Stop Recording</button>
+          <button id="btnEnrollVoice" onclick="enrollVoice()">Enroll Voice</button>
+          <div>Voice: <input id="enrollVoiceFile" type="file" accept="audio/*"/></div>
+        </div>
+      </div>
+      <div id="enrollResult"></div>
     </section>
   </div>
-  <section class="card">
-    <h3>Submit Exam</h3>
-    <button onclick="submitSession()">Submit Session</button>
-    <div id="submitInfo"></div>
-  </section>
-  <section class="card">
-    <h3>Session Metrics</h3>
-    <button onclick="getMetrics()">Get Metrics</button>
-    <pre id="metrics"></pre>
-  </section>
+  <div id="page2" class="hidden">
+    <section class="card">
+      <h3>Start Exam Session</h3>
+      <label>Duration (minutes): <input id="duration" type="number" value="60"/></label><br/>
+      <button id="btnStartSession" onclick="startSession()">Start Session</button>
+      <div id="sessionInfo"></div>
+    </section>
+    <div class="row">
+      <section class="card">
+        <h3>Start Verification</h3>
+        <div>Face: <input id="startFace" type="file" accept="image/*"/></div>
+        <button id="btnVerifyFaceStart" onclick="verifyFace('start')">Verify Face (Start)</button>
+        <div>Voice: <input id="startVoice" type="file" accept="audio/*"/></div>
+        <button id="btnVerifyVoiceStart" onclick="verifyVoice('start')">Verify Voice (Start)</button>
+        <div id="startResult"></div>
+      </section>
+    </div>
+  </div>
+  <div id="page3" class="hidden">
+    <section class="card">
+      <h3>Exam</h3>
+      <button onclick="getMetrics()">Get Metrics</button>
+      <pre id="metrics"></pre>
+    </section>
+  </div>
+  <div id="page4" class="hidden">
+    <div class="row">
+      <section class="card">
+        <h3>End Verification</h3>
+        <div>Face: <input id="endFace" type="file" accept="image/*"/></div>
+        <button id="btnVerifyFaceEnd" onclick="verifyFace('end')">Verify Face (End)</button>
+        <div>Voice: <input id="endVoice" type="file" accept="audio/*"/></div>
+        <button id="btnVerifyVoiceEnd" onclick="verifyVoice('end')">Verify Voice (End)</button>
+        <div id="endResult"></div>
+      </section>
+    </div>
+    <section class="card">
+      <h3>Sign Off</h3>
+      <button id="btnSubmitSession" onclick="submitSession()">Submit Session</button>
+      <div id="submitInfo"></div>
+    </section>
+  </div>
   <script>
     const base = '/api/v1';
     let sessionId = null;
+    let camStream = null;
+    let faceBlob = null;
+    let audioRecorder = null;
+    let audioChunks = [];
+    let voiceBlob = null;
+    let audioCtx = null;
+    let audioSource = null;
+    let scriptNode = null;
+    let voiceSamples = [];
+    let voiceSampleRate = 16000;
+    let state = { userId: null, sessionId: null, enrolled: { face: false, voice: false }, verifiedStart: { face: false, voice: false } };
+    function show(id) {
+      document.getElementById('page1').classList.add('hidden');
+      document.getElementById('page2').classList.add('hidden');
+      document.getElementById('page3').classList.add('hidden');
+      document.getElementById('page4').classList.add('hidden');
+      document.getElementById(id).classList.remove('hidden');
+      updateUI();
+    }
+    function updateUI() {
+      const userOk = !!document.getElementById('userId').value;
+      document.getElementById('btnEnrollFace').disabled = !userOk;
+      document.getElementById('btnEnrollVoice').disabled = !userOk;
+      const canStartSession = userOk && state.enrolled.face && state.enrolled.voice;
+      const btnStartSession = document.getElementById('btnStartSession');
+      if (btnStartSession) btnStartSession.disabled = !canStartSession;
+      const canStartVerify = !!sessionId && state.enrolled.face && state.enrolled.voice;
+      const b1 = document.getElementById('btnVerifyFaceStart'); if (b1) b1.disabled = !canStartVerify;
+      const b2 = document.getElementById('btnVerifyVoiceStart'); if (b2) b2.disabled = !canStartVerify;
+      const canEndVerify = !!sessionId;
+      const b3 = document.getElementById('btnVerifyFaceEnd'); if (b3) b3.disabled = !canEndVerify;
+      const b4 = document.getElementById('btnVerifyVoiceEnd'); if (b4) b4.disabled = !canEndVerify;
+      const b5 = document.getElementById('btnSubmitSession'); if (b5) b5.disabled = !sessionId;
+    }
+    function quickRegister() {
+      const email = `user_${Date.now()}@example.com`;
+      const payload = { email, full_name: "", password: "Password123!" };
+      fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(r => r.json()).then(j => {
+          const el = document.getElementById('registerInfo');
+          if (j && j.id) {
+            document.getElementById('userId').value = j.id;
+            state.userId = j.id;
+            el.innerText = JSON.stringify({ registered: true, user_id: j.id, email: j.email });
+            el.className = 'ok';
+            updateUI();
+          } else {
+            el.innerText = JSON.stringify(j);
+            el.className = 'error';
+          }
+        }).catch(e => {
+          const el = document.getElementById('registerInfo');
+          el.innerText = String(e);
+          el.className = 'error';
+        });
+    }
     function startSession() {
       const userId = document.getElementById('userId').value;
       const duration = document.getElementById('duration').value;
+      if (!userId || isNaN(parseInt(userId))) {
+        document.getElementById('sessionInfo').innerText = JSON.stringify({error:'Provide a valid numeric user_id'});
+        document.getElementById('sessionInfo').className = 'error';
+        return;
+      }
       const fd = new FormData();
       fd.append('user_id', userId);
       fd.append('duration_minutes', duration);
       fd.append('schedule_type', 'start_end');
       fetch(`${base}/exam/session/start`, { method: 'POST', body: fd })
-        .then(r => r.json()).then(j => { sessionId = j.session_id; document.getElementById('sessionInfo').innerText = JSON.stringify(j); });
+        .then(r => r.json()).then(j => { sessionId = j.session_id; state.sessionId = sessionId; const el = document.getElementById('sessionInfo'); el.innerText = JSON.stringify(j); el.className = 'ok'; updateUI(); });
+    }
+    async function startCamera() {
+      try {
+        camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        document.getElementById('cam').srcObject = camStream;
+      } catch {}
+    }
+    function captureFace() {
+      const v = document.getElementById('cam');
+      if (!v.srcObject) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Camera not started'}); return; }
+      const c = document.createElement('canvas'); c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
+      const ctx = c.getContext('2d'); ctx.drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob(b => { faceBlob = b; document.getElementById('enrollResult').innerText = JSON.stringify({face:'captured'}); }, 'image/jpeg', 0.92);
+    }
+    function startVoiceRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(s => {
+        voiceSamples = []; voiceBlob = null;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        voiceSampleRate = audioCtx.sampleRate || 44100;
+        audioSource = audioCtx.createMediaStreamSource(s);
+        scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+        scriptNode.onaudioprocess = e => {
+          const ch = e.inputBuffer.getChannelData(0);
+          voiceSamples.push(new Float32Array(ch));
+        };
+        audioSource.connect(scriptNode);
+        scriptNode.connect(audioCtx.destination);
+      }).catch(() => {});
+    }
+    function stopVoiceRecording() {
+      try {
+        if (audioSource) audioSource.disconnect();
+        if (scriptNode) scriptNode.disconnect();
+        if (audioCtx) audioCtx.close();
+      } catch {}
+      const all = mergeFloat32(voiceSamples);
+      const wav = encodeWAV(all, voiceSampleRate);
+      voiceBlob = new Blob([wav], { type: 'audio/wav' });
+      document.getElementById('enrollResult').innerText = JSON.stringify({voice:'recorded'});
+    }
+    function enrollFace() {
+      const userId = document.getElementById('userId').value;
+      if (!userId || isNaN(parseInt(userId))) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); document.getElementById('enrollResult').className = 'error'; return; }
+      const fileInput = document.getElementById('enrollFaceFile');
+      const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : faceBlob;
+      const fd = new FormData(); fd.append('user_id', userId);
+      if (!file) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'No face file'}); return; }
+      fd.append('file', file, file.name || 'capture.jpg');
+      fetch(`${base}/enroll/face`, { method: 'POST', body: fd }).then(r => r.json()).then(j => { const el = document.getElementById('enrollResult'); el.innerText = JSON.stringify(j); el.className = j.mock_used ? '' : 'ok'; if (j && j.biometric_id) { state.enrolled.face = true; updateUI(); } });
+    }
+    function enrollVoice() {
+      const userId = document.getElementById('userId').value;
+      if (!userId || isNaN(parseInt(userId))) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); document.getElementById('enrollResult').className = 'error'; return; }
+      const fileInput = document.getElementById('enrollVoiceFile');
+      const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : voiceBlob;
+      const fd = new FormData(); fd.append('user_id', userId);
+      if (!file) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'No voice file'}); return; }
+      fd.append('file', file, file.name || 'capture.wav');
+      fetch(`${base}/enroll/voice`, { method: 'POST', body: fd }).then(r => r.json()).then(j => { const el = document.getElementById('enrollResult'); el.innerText = JSON.stringify(j); el.className = j.mock_used ? '' : 'ok'; if (j && j.biometric_id) { state.enrolled.voice = true; updateUI(); } });
     }
     function submitSession() {
       const userId = document.getElementById('userId').value;
+      if (!sessionId) { document.getElementById('submitInfo').innerText = JSON.stringify({error:'Start a session first'}); document.getElementById('submitInfo').className = 'error'; return; }
       const fd = new FormData();
       fd.append('user_id', userId);
       fd.append('session_id', sessionId);
       fetch(`${base}/exam/session/submit`, { method: 'POST', body: fd })
-        .then(r => r.json()).then(j => { document.getElementById('submitInfo').innerText = JSON.stringify(j); });
+        .then(r => r.json()).then(j => { const el = document.getElementById('submitInfo'); el.innerText = JSON.stringify(j); el.className = 'ok'; });
     }
     function verifyFace(phase) {
       const userId = document.getElementById('userId').value;
+      if (!userId || isNaN(parseInt(userId))) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); el.className = 'error'; return; }
+      if (!sessionId) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Start a session first'}); el.className = 'error'; return; }
       const input = phase === 'start' ? document.getElementById('startFace') : document.getElementById('endFace');
       const fd = new FormData();
       fd.append('user_id', userId);
       fd.append('session_id', sessionId);
-      fd.append('file', input.files[0]);
+      let file = input.files && input.files[0];
+      if (!file && faceBlob) file = faceBlob;
+      if (!file) {
+        const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
+        el.innerText = JSON.stringify({error: 'No file selected'});
+        return;
+      }
+      fd.append('file', file, file.name || 'capture.jpg');
       fetch(`${base}/verify/authenticate/face/${phase}`, { method: 'POST', body: fd })
         .then(r => r.json()).then(j => {
           const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
           el.innerText = JSON.stringify(j);
+          el.className = j.mock_used ? '' : 'ok';
+          if (phase === 'start' && j && j.match) { state.verifiedStart.face = true; }
         });
     }
     function verifyVoice(phase) {
       const userId = document.getElementById('userId').value;
+      if (!userId || isNaN(parseInt(userId))) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); el.className = 'error'; return; }
+      if (!sessionId) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Start a session first'}); el.className = 'error'; return; }
       const input = phase === 'start' ? document.getElementById('startVoice') : document.getElementById('endVoice');
       const fd = new FormData();
       fd.append('user_id', userId);
       fd.append('session_id', sessionId);
-      fd.append('file', input.files[0]);
+      let file = input.files && input.files[0];
+      if (!file && voiceBlob) file = voiceBlob;
+      if (!file) {
+        const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
+        el.innerText = JSON.stringify({error: 'No file selected'});
+        return;
+      }
+      fd.append('file', file, file.name || 'capture.wav');
       fetch(`${base}/verify/authenticate/voice/${phase}`, { method: 'POST', body: fd })
         .then(r => r.json()).then(j => {
           const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
           el.innerText = JSON.stringify(j);
+          el.className = j.mock_used ? '' : 'ok';
+          if (phase === 'start' && j && j.match) { state.verifiedStart.voice = true; }
         });
+    }
+    function mergeFloat32(chunks) {
+      let total = 0; for (let i = 0; i < chunks.length; i++) total += chunks[i].length;
+      const result = new Float32Array(total);
+      let offset = 0;
+      for (let i = 0; i < chunks.length; i++) {
+        result.set(chunks[i], offset);
+        offset += chunks[i].length;
+      }
+      return result;
+    }
+    function encodeWAV(samples, sampleRate) {
+      const bps = 16;
+      const bytesPerSample = bps / 8;
+      const blockAlign = bytesPerSample * 1;
+      const byteRate = sampleRate * blockAlign;
+      const dataSize = samples.length * bytesPerSample;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bps, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, dataSize, true);
+      floatTo16BitPCM(view, 44, samples);
+      return buffer;
+    }
+    function floatTo16BitPCM(view, offset, input) {
+      let pos = offset;
+      for (let i = 0; i < input.length; i++, pos += 2) {
+        let s = Math.max(-1, Math.min(1, input[i]));
+        view.setInt16(pos, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+    }
+    function writeString(view, offset, s) {
+      for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
     }
     function getMetrics() {
       fetch(`${base}/exam/metrics/session/${sessionId}`).then(r => r.json()).then(j => { document.getElementById('metrics').innerText = JSON.stringify(j, null, 2); });
     }
+    show('page1');
   </script>
   </body>
   </html>

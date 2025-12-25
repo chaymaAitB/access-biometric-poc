@@ -36,7 +36,7 @@ def upgrade() -> None:
     op.create_table('biometric_data',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('modality', sa.Enum('FACE', 'VOICE', 'FINGERPRINT', name='biometrictype'), nullable=False),
+    sa.Column('modality', sa.Enum('FACE', 'VOICE', name='biometrictype'), nullable=False),
     sa.Column('encrypted_descriptor', sa.LargeBinary(), nullable=False),
     sa.Column('created_at', sa.String(), nullable=False),
     sa.Column('device_info', sa.String(), nullable=True),

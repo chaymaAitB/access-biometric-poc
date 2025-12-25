@@ -5,6 +5,7 @@ from app.api.v1.endpoints import auth, enrollment, verification, exam
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
+from fastapi.middleware.cors import CORSMiddleware
 
 # Create tables (for dev only - use Alembic in prod)
 Base.metadata.create_all(bind=engine)
@@ -12,6 +13,14 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount static files

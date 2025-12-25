@@ -16,7 +16,7 @@ def get_password_hash(password):
 def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(UserModel).filter(UserModel.email == user.email).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        return db_user
     
     hashed_password = get_password_hash(user.password)
     db_user = UserModel(

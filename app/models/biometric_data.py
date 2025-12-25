@@ -6,7 +6,6 @@ import enum
 class BiometricType(str, enum.Enum):
     FACE = "face"
     VOICE = "voice"
-    FINGERPRINT = "fingerprint"
 
 class BiometricData(Base):
     __tablename__ = "biometric_data"

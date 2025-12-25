@@ -127,11 +127,20 @@ async def enroll_face(file: UploadFile = File(...), user_id: int = Form(...), db
 
 @router.post("/voice")
 async def enroll_voice(file: UploadFile = File(...), user_id: int = Form(...), db: Session = Depends(get_db)):
-    import zlib
     audio_data = await file.read()
-    seed_key = str(zlib.crc32(audio_data))
-    random.seed(seed_key)
-    descriptor = [random.uniform(-1.0, 1.0) for _ in range(128)]
+    used_mock = False
+    descriptor = None
+    try:
+        from app.services.voice_embedding import compute_embedding as compute_voice_embedding
+        descriptor = compute_voice_embedding(audio_data)
+    except Exception:
+        descriptor = None
+    if descriptor is None:
+        import zlib
+        seed_key = str(zlib.crc32(audio_data))
+        random.seed(seed_key)
+        descriptor = [random.uniform(-1.0, 1.0) for _ in range(128)]
+        used_mock = True
     cipher = get_cipher_suite()
     encrypted_descriptor = cipher.encrypt(json.dumps(descriptor).encode())
     biometric_entry = BiometricData(
@@ -144,8 +153,4 @@ async def enroll_voice(file: UploadFile = File(...), user_id: int = Form(...), d
     db.add(biometric_entry)
     db.commit()
     db.refresh(biometric_entry)
-    return {"message": "Voice enrolled successfully", "biometric_id": biometric_entry.id, "mock_used": True}
-
-@router.post("/fingerprint")
-def enroll_fingerprint(data: str = Form(...), user_id: int = Form(...)):
-    return {"message": "Fingerprint enrollment endpoint (Placeholder)"}
+    return {"message": "Voice enrolled successfully", "biometric_id": biometric_entry.id, "mock_used": used_mock}

@@ -1,7 +1,7 @@
 # Multimodal Biometric Access API
 
 ## 📌 Project Overview
-This project is a **Secure Backend API** designed to control access to online exams using **Multimodal Biometrics** (Face, Voice, Fingerprint). It ensures that the examinee is the legitimate candidate through rigorous enrollment, authentication, and continuous verification processes.
+This project is a **Secure Backend API** designed to control access to online exams using **Multimodal Biometrics** (Face and Voice). It ensures that the examinee is the legitimate candidate through rigorous enrollment, authentication, and continuous verification processes.
 
 The system is built with **Privacy by Design** principles:
 *   **No raw biometric data storage**: Only encrypted descriptors are stored.
@@ -30,7 +30,6 @@ access-biometric-poc/
 │   ├── schemas/        # Pydantic Data Schemas
 │   ├── services/       # Business Logic (Biometric extraction)
 │   └── main.py         # Application Entry Point
-├── django_poc/         # Legacy Django Proof of Concept (Archived)
 ├── requirements.txt    # Project Dependencies
 └── .env                # Environment Variables (Secrets)
 ```
@@ -96,7 +95,7 @@ If you prefer preview with a built bundle:
 npm run build
 npm run preview
 ```
-Preview runs on `http://localhost:4173/`. It uses `frontend/.env` (`VITE_API_BASE=http://127.0.0.1:8001/api/v1`) to reach the backend.
+Preview runs on `http://localhost:4173/`. It uses `frontend/.env` (`VITE_API_BASE=http://127.0.0.1:8000/api/v1`) to reach the backend.
 
 ---
 
@@ -128,7 +127,7 @@ To run the end-to-end test workflow (Register -> Enroll -> Verify), ensure the s
 
 ```bash
 # 1. Start the server (if not running)
-uvicorn app.main:app --reload --port 8001
+uvicorn app.main:app --reload --port 8000
 
 # 2. Run the test script (in a separate terminal)
 python test_workflow.py
@@ -141,7 +140,7 @@ This script will:
 4.  Output "MATCH CONFIRMED" in Mock Mode when using the same filename prefix.
 
 ### Web Test Console
-- Open `http://127.0.0.1:8001/` to use a simple UI for testing.
+- Open `http://127.0.0.1:8000/` to use a simple UI for testing.
 - Step 1 registers a user; Steps 2–3 enroll and verify a face image.
 - The UI calls API endpoints under `/api/v1/...`.
 
@@ -182,4 +181,4 @@ This script will:
 - FAR requires enrolled impostor datasets; extend metrics endpoints as needed.
 
 ## 📂 Legacy
-The original Django POC has been moved to the `django_poc/` folder for reference.
+The original Django POC has been removed from this repository.

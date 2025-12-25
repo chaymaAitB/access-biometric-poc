@@ -189,18 +189,36 @@ async def verify_voice_start(file: UploadFile = File(...), user_id: int = Form(.
     if not biometric_entry:
         raise HTTPException(status_code=404, detail="No voice biometric data found for user")
     audio_data = await file.read()
-    input_descriptor = _compute_voice_descriptor(audio_data)
-    used_mock = True
+    used_mock = False
+    input_descriptor = None
+    try:
+        from app.services.voice_embedding import compute_embedding as compute_voice_embedding
+        input_descriptor = compute_voice_embedding(audio_data)
+    except Exception:
+        input_descriptor = None
+    if input_descriptor is None:
+        input_descriptor = _compute_voice_descriptor(audio_data)
+        used_mock = True
     cipher = get_cipher_suite()
     encrypted_blob = biometric_entry.encrypted_descriptor
     if isinstance(encrypted_blob, memoryview):
         encrypted_blob = encrypted_blob.tobytes()
     stored_descriptor_json = cipher.decrypt(bytes(encrypted_blob))
     stored_descriptor = json.loads(stored_descriptor_json.decode())
-    score = euclidean_distance(input_descriptor, stored_descriptor)
-    threshold = 0.6
-    match = score < threshold
     metric = "euclidean"
+    score = None
+    threshold = 0.6
+    if len(stored_descriptor) == 128:
+        score = euclidean_distance(input_descriptor, stored_descriptor)
+        match = score < threshold
+    else:
+        metric = "cosine"
+        a = np.array(input_descriptor, dtype=np.float32)
+        b = np.array(stored_descriptor, dtype=np.float32)
+        denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-8
+        score = float(np.dot(a, b) / denom)
+        threshold = 0.3
+        match = score >= threshold
     res = {"match": match, "score": score, "threshold": threshold, "metric": metric, "mock_used": used_mock}
     _log_event(db, session_id, user_id, BiometricType.VOICE, VerificationPhase.START, match, score, threshold, metric, used_mock)
     return {"session_id": session_id, **res}
@@ -211,18 +229,36 @@ async def verify_voice_end(file: UploadFile = File(...), user_id: int = Form(...
     if not biometric_entry:
         raise HTTPException(status_code=404, detail="No voice biometric data found for user")
     audio_data = await file.read()
-    input_descriptor = _compute_voice_descriptor(audio_data)
-    used_mock = True
+    used_mock = False
+    input_descriptor = None
+    try:
+        from app.services.voice_embedding import compute_embedding as compute_voice_embedding
+        input_descriptor = compute_voice_embedding(audio_data)
+    except Exception:
+        input_descriptor = None
+    if input_descriptor is None:
+        input_descriptor = _compute_voice_descriptor(audio_data)
+        used_mock = True
     cipher = get_cipher_suite()
     encrypted_blob = biometric_entry.encrypted_descriptor
     if isinstance(encrypted_blob, memoryview):
         encrypted_blob = encrypted_blob.tobytes()
     stored_descriptor_json = cipher.decrypt(bytes(encrypted_blob))
     stored_descriptor = json.loads(stored_descriptor_json.decode())
-    score = euclidean_distance(input_descriptor, stored_descriptor)
-    threshold = 0.6
-    match = score < threshold
     metric = "euclidean"
+    score = None
+    threshold = 0.6
+    if len(stored_descriptor) == 128:
+        score = euclidean_distance(input_descriptor, stored_descriptor)
+        match = score < threshold
+    else:
+        metric = "cosine"
+        a = np.array(input_descriptor, dtype=np.float32)
+        b = np.array(stored_descriptor, dtype=np.float32)
+        denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-8
+        score = float(np.dot(a, b) / denom)
+        threshold = 0.3
+        match = score >= threshold
     res = {"match": match, "score": score, "threshold": threshold, "metric": metric, "mock_used": used_mock}
     _log_event(db, session_id, user_id, BiometricType.VOICE, VerificationPhase.END, match, score, threshold, metric, used_mock)
     return {"session_id": session_id, **res}
