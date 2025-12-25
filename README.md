@@ -40,8 +40,9 @@ access-biometric-poc/
 ## 🚀 Installation & Setup
 
 ### 1. Prerequisites
-*   Python 3.10 or higher
-*   Virtualenv
+- Python 3.10 or higher
+- Virtualenv
+- Node.js 18+ (for frontend)
 
 ### 2. Setup Environment
 
@@ -78,20 +79,46 @@ uvicorn app.main:app --reload
 ```
 
 The API will be available at:
-*   **Root**: http://127.0.0.1:8000/
-*   **Docs (Swagger UI)**: http://127.0.0.1:8000/docs
-*   **ReDoc**: http://127.0.0.1:8000/redoc
+- Root: http://127.0.0.1:8000/
+- Docs (Swagger UI): http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
+
+### 6. Frontend (React)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Dev server runs on `http://localhost:5173/` and proxies API calls to `http://127.0.0.1:8001`.
+
+If you prefer preview with a built bundle:
+```bash
+npm run build
+npm run preview
+```
+Preview runs on `http://localhost:4173/`. It uses `frontend/.env` (`VITE_API_BASE=http://127.0.0.1:8001/api/v1`) to reach the backend.
 
 ---
 
 ## 🔑 Key Features (In Progress)
-*   **User Management**: Registration & Login.
-*   **Biometric Enrollment**:
-    *   `/api/v1/enroll/face`: Extract & Encrypt Face ID.
-    *   `/api/v1/enroll/voice`: Extract & Encrypt Voice Print.
-*   **Verification**:
-    *   `/api/v1/verify/authenticate/face`: 1:1 Matching.
-    *   `/api/v1/verify/identify/face`: 1:N Identification.
+- User Management: Registration & Login.
+- Biometric Enrollment:
+  - `/api/v1/enroll/face`
+  - `/api/v1/enroll/voice`
+- Verification:
+  - Start of exam:
+    - `/api/v1/verify/authenticate/face/start`
+    - `/api/v1/verify/authenticate/voice/start`
+  - End of exam:
+    - `/api/v1/verify/authenticate/face/end`
+    - `/api/v1/verify/authenticate/voice/end`
+  - Identification:
+    - `/api/v1/verify/identify/face`
+
+Frontend routes:
+- `/verify-start`: Login and biometric start verification (camera/mic capture)
+- `/exam-session`: Guarded exam interface
+- `/verify-end`: Final biometric verification and submission
 
 ---
 
@@ -147,6 +174,12 @@ This script will:
 - API responses include:
   - `"metric"`: `"euclidean"` or `"cosine"`
   - `"mock_used"`: `false` when real embeddings are used
+
+### Performance Metrics
+- Verification attempts are logged per session (`verification_events`) for FRR/FAR analysis.
+- Session FRR endpoint:
+  - `GET /api/v1/exam/metrics/session/{session_id}`
+- FAR requires enrolled impostor datasets; extend metrics endpoints as needed.
 
 ## 📂 Legacy
 The original Django POC has been moved to the `django_poc/` folder for reference.
