@@ -44,6 +44,7 @@
           <button onclick="captureFace()">Capture Face</button>
           <button id="btnEnrollFace" onclick="enrollFace()">Enroll Face</button>
           <div>Face: <input id="enrollFaceFile" type="file" accept="image/*"/></div>
+          <div><img id="facePreview" width="160" height="120"/></div>
         </div>
         <div>
           <button onclick="startVoiceRecording()">Start Recording</button>
@@ -65,6 +66,10 @@
     <div class="row">
       <section class="card">
         <h3>Start Verification</h3>
+        <div><video id="cam2" width="320" height="240" autoplay muted playsinline></video></div>
+        <button onclick="startCamera2()">Start Camera</button>
+        <button onclick="performLiveness()">Liveness Check</button>
+        <div id="livenessResult"></div>
         <div>Face: <input id="startFace" type="file" accept="image/*"/></div>
         <button id="btnVerifyFaceStart" onclick="verifyFace('start')">Verify Face (Start)</button>
         <div>Voice: <input id="startVoice" type="file" accept="audio/*"/></div>
@@ -110,7 +115,10 @@
     let scriptNode = null;
     let voiceSamples = [];
     let voiceSampleRate = 16000;
-    let state = { userId: null, sessionId: null, enrolled: { face: false, voice: false }, verifiedStart: { face: false, voice: false } };
+    let state = { userId: null, sessionId: null, enrolled: { face: false, voice: false }, verifiedStart: { face: false, voice: false }, liveness: { ok: false, score: 0 } };
+    let camStream2 = null;
+    let lFrame1 = null;
+    let lFrame2 = null;
     function show(id) {
       document.getElementById('page1').classList.add('hidden');
       document.getElementById('page2').classList.add('hidden');
@@ -119,14 +127,21 @@
       document.getElementById(id).classList.remove('hidden');
       updateUI();
     }
+    function loadPersisted() {
+      const savedUser = localStorage.getItem('userId');
+      if (savedUser) {
+        document.getElementById('userId').value = savedUser;
+        state.userId = parseInt(savedUser);
+      }
+    }
     function updateUI() {
       const userOk = !!document.getElementById('userId').value;
       document.getElementById('btnEnrollFace').disabled = !userOk;
       document.getElementById('btnEnrollVoice').disabled = !userOk;
-      const canStartSession = userOk && state.enrolled.face && state.enrolled.voice;
+      const canStartSession = userOk && state.enrolled.face && state.enrolled.voice && state.liveness.ok;
       const btnStartSession = document.getElementById('btnStartSession');
       if (btnStartSession) btnStartSession.disabled = !canStartSession;
-      const canStartVerify = !!sessionId && state.enrolled.face && state.enrolled.voice;
+      const canStartVerify = !!sessionId && state.enrolled.face && state.enrolled.voice && state.liveness.ok;
       const b1 = document.getElementById('btnVerifyFaceStart'); if (b1) b1.disabled = !canStartVerify;
       const b2 = document.getElementById('btnVerifyVoiceStart'); if (b2) b2.disabled = !canStartVerify;
       const canEndVerify = !!sessionId;
@@ -143,6 +158,7 @@
           if (j && j.id) {
             document.getElementById('userId').value = j.id;
             state.userId = j.id;
+            localStorage.setItem('userId', String(j.id));
             el.innerText = JSON.stringify({ registered: true, user_id: j.id, email: j.email });
             el.className = 'ok';
             updateUI();
@@ -156,6 +172,15 @@
           el.className = 'error';
         });
     }
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPersisted();
+      const uid = document.getElementById('userId');
+      uid.addEventListener('input', () => {
+        localStorage.setItem('userId', String(uid.value || ''));
+        state.userId = parseInt(uid.value || '0') || null;
+        updateUI();
+      });
+    });
     function startSession() {
       const userId = document.getElementById('userId').value;
       const duration = document.getElementById('duration').value;
@@ -168,8 +193,19 @@
       fd.append('user_id', userId);
       fd.append('duration_minutes', duration);
       fd.append('schedule_type', 'start_end');
+      fd.append('liveness_ok', String(state.liveness.ok));
+      fd.append('liveness_score', String(state.liveness.score));
       fetch(`${base}/exam/session/start`, { method: 'POST', body: fd })
-        .then(r => r.json()).then(j => { sessionId = j.session_id; state.sessionId = sessionId; const el = document.getElementById('sessionInfo'); el.innerText = JSON.stringify(j); el.className = 'ok'; updateUI(); });
+        .then(r => r.json()).then(j => {
+          const el = document.getElementById('sessionInfo');
+          if (j && j.session_id) {
+            sessionId = j.session_id; state.sessionId = sessionId;
+            el.innerText = JSON.stringify(j); el.className = 'ok';
+            updateUI();
+          } else {
+            el.innerText = JSON.stringify(j); el.className = 'error';
+          }
+        });
     }
     async function startCamera() {
       try {
@@ -177,12 +213,43 @@
         document.getElementById('cam').srcObject = camStream;
       } catch {}
     }
+    async function startCamera2() {
+      try {
+        camStream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        document.getElementById('cam2').srcObject = camStream2;
+      } catch {}
+    }
     function captureFace() {
       const v = document.getElementById('cam');
       if (!v.srcObject) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Camera not started'}); return; }
       const c = document.createElement('canvas'); c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
       const ctx = c.getContext('2d'); ctx.drawImage(v, 0, 0, c.width, c.height);
-      c.toBlob(b => { faceBlob = b; document.getElementById('enrollResult').innerText = JSON.stringify({face:'captured'}); }, 'image/jpeg', 0.92);
+      c.toBlob(b => { faceBlob = b; document.getElementById('enrollResult').innerText = JSON.stringify({face:'captured'}); const prev = document.getElementById('facePreview'); prev.src = URL.createObjectURL(b); }, 'image/jpeg', 0.92);
+    }
+    function performLiveness() {
+      const v = document.getElementById('cam2');
+      if (!v.srcObject) { document.getElementById('livenessResult').innerText = JSON.stringify({error:'Start camera'}); document.getElementById('livenessResult').className = 'error'; return; }
+      const c = document.createElement('canvas'); c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
+      const ctx = c.getContext('2d'); ctx.drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob(b => { lFrame1 = b; setTimeout(() => {
+        const c2 = document.createElement('canvas'); c2.width = v.videoWidth || 320; c2.height = v.videoHeight || 240;
+        const ctx2 = c2.getContext('2d'); ctx2.drawImage(v, 0, 0, c2.width, c2.height);
+        c2.toBlob(b2 => {
+          lFrame2 = b2;
+          const fd = new FormData();
+          fd.append('file1', lFrame1, 'f1.jpg');
+          fd.append('file2', lFrame2, 'f2.jpg');
+          fetch(`${base}/verify/authenticate/face/liveness`, { method: 'POST', body: fd })
+            .then(r => r.json()).then(j => {
+              const el = document.getElementById('livenessResult');
+              el.innerText = JSON.stringify(j);
+              el.className = j.liveness ? 'ok' : 'error';
+              state.liveness.ok = Boolean(j.liveness);
+              state.liveness.score = Number(j.score || 0);
+              updateUI();
+            });
+        }, 'image/jpeg', 0.92);
+      }, 1000); }, 'image/jpeg', 0.92);
     }
     function startVoiceRecording() {
       navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(s => {
@@ -207,8 +274,20 @@
       } catch {}
       const all = mergeFloat32(voiceSamples);
       const wav = encodeWAV(all, voiceSampleRate);
+      const dur = all.length / voiceSampleRate;
+      let rms = 0.0;
+      for (let i = 0; i < all.length; i++) rms += all[i] * all[i];
+      rms = Math.sqrt(rms / Math.max(1, all.length));
+      const okDur = dur >= 1.0;
+      const okAmp = rms >= 0.02;
+      if (!okDur || !okAmp) {
+        document.getElementById('enrollResult').innerText = JSON.stringify({error:'Voice too short or too quiet', duration_s: dur.toFixed(2), rms: rms.toFixed(4)});
+        document.getElementById('enrollResult').className = 'error';
+        voiceBlob = null;
+        return;
+      }
       voiceBlob = new Blob([wav], { type: 'audio/wav' });
-      document.getElementById('enrollResult').innerText = JSON.stringify({voice:'recorded'});
+      document.getElementById('enrollResult').innerText = JSON.stringify({voice:'recorded', duration_s: dur.toFixed(2), rms: rms.toFixed(4)});
     }
     function enrollFace() {
       const userId = document.getElementById('userId').value;

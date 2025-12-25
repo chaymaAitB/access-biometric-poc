@@ -144,7 +144,7 @@ async def verify_face(file: UploadFile = File(...), user_id: int = Form(...), db
 
     score = None
     metric = "euclidean"
-    threshold = 0.6
+    threshold = settings.FACE_EUCLIDEAN_THRESHOLD
     if len(stored_descriptor) == 128:
         score = euclidean_distance(input_descriptor, stored_descriptor)
         match = score < threshold
@@ -154,7 +154,7 @@ async def verify_face(file: UploadFile = File(...), user_id: int = Form(...), db
         b = np.array(stored_descriptor, dtype=np.float32)
         denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-8
         score = float(np.dot(a, b) / denom)
-        threshold = 0.3
+        threshold = settings.FACE_COSINE_THRESHOLD
         match = score >= threshold
 
     return {
@@ -176,6 +176,35 @@ async def verify_face_end(file: UploadFile = File(...), user_id: int = Form(...)
     res = await verify_face(file=file, user_id=user_id, db=db)
     _log_event(db, session_id, user_id, BiometricType.FACE, VerificationPhase.END, res["match"], res["score"], res["threshold"], res["metric"], res["mock_used"])
     return {"session_id": session_id, **res}
+
+@router.post("/authenticate/face/liveness")
+async def verify_face_liveness(file1: UploadFile = File(...), file2: UploadFile = File(...)):
+    img1 = await file1.read()
+    img2 = await file2.read()
+    score = 0.0
+    liveness = False
+    if HAS_CV2:
+        try:
+            a = cv2.imdecode(np.frombuffer(img1, np.uint8), cv2.IMREAD_COLOR)
+            b = cv2.imdecode(np.frombuffer(img2, np.uint8), cv2.IMREAD_COLOR)
+            if a is not None and b is not None:
+                ga = cv2.cvtColor(a, cv2.COLOR_BGR2GRAY)
+                gb = cv2.cvtColor(b, cv2.COLOR_BGR2GRAY)
+                ga = cv2.GaussianBlur(ga, (5,5), 0)
+                gb = cv2.GaussianBlur(gb, (5,5), 0)
+                d = cv2.absdiff(ga, gb)
+                score = float(np.mean(d))
+                liveness = score > settings.LIVENESS_MOTION_THRESHOLD
+        except Exception:
+            liveness = False
+    else:
+        try:
+            import zlib
+            score = abs(zlib.crc32(img1) - zlib.crc32(img2))
+            liveness = score > 1000
+        except Exception:
+            liveness = False
+    return {"liveness": liveness, "score": score}
 
 def _compute_voice_descriptor(audio_bytes: bytes) -> list[float]:
     import zlib
@@ -207,7 +236,7 @@ async def verify_voice_start(file: UploadFile = File(...), user_id: int = Form(.
     stored_descriptor = json.loads(stored_descriptor_json.decode())
     metric = "euclidean"
     score = None
-    threshold = 0.6
+    threshold = settings.VOICE_EUCLIDEAN_THRESHOLD
     if len(stored_descriptor) == 128:
         score = euclidean_distance(input_descriptor, stored_descriptor)
         match = score < threshold
@@ -217,7 +246,7 @@ async def verify_voice_start(file: UploadFile = File(...), user_id: int = Form(.
         b = np.array(stored_descriptor, dtype=np.float32)
         denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-8
         score = float(np.dot(a, b) / denom)
-        threshold = 0.3
+        threshold = settings.VOICE_COSINE_THRESHOLD
         match = score >= threshold
     res = {"match": match, "score": score, "threshold": threshold, "metric": metric, "mock_used": used_mock}
     _log_event(db, session_id, user_id, BiometricType.VOICE, VerificationPhase.START, match, score, threshold, metric, used_mock)
@@ -247,7 +276,7 @@ async def verify_voice_end(file: UploadFile = File(...), user_id: int = Form(...
     stored_descriptor = json.loads(stored_descriptor_json.decode())
     metric = "euclidean"
     score = None
-    threshold = 0.6
+    threshold = settings.VOICE_EUCLIDEAN_THRESHOLD
     if len(stored_descriptor) == 128:
         score = euclidean_distance(input_descriptor, stored_descriptor)
         match = score < threshold
@@ -257,7 +286,7 @@ async def verify_voice_end(file: UploadFile = File(...), user_id: int = Form(...
         b = np.array(stored_descriptor, dtype=np.float32)
         denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-8
         score = float(np.dot(a, b) / denom)
-        threshold = 0.3
+        threshold = settings.VOICE_COSINE_THRESHOLD
         match = score >= threshold
     res = {"match": match, "score": score, "threshold": threshold, "metric": metric, "mock_used": used_mock}
     _log_event(db, session_id, user_id, BiometricType.VOICE, VerificationPhase.END, match, score, threshold, metric, used_mock)

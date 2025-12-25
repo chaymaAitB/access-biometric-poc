@@ -4,16 +4,19 @@ from app.db.session import get_db
 from app.models.exam_session import ExamSession, ExamStatus, ScheduleType
 from app.models.verification_event import VerificationEvent
 import datetime
+from app.core.config import settings
 
 router = APIRouter()
 
 @router.post("/session/start")
-def start_session(user_id: int = Form(...), duration_minutes: int | None = Form(None), schedule_type: str = Form("start_end"), interval_minutes: int | None = Form(None), db: Session = Depends(get_db)):
+def start_session(user_id: int = Form(...), duration_minutes: int | None = Form(None), schedule_type: str = Form("start_end"), interval_minutes: int | None = Form(None), liveness_ok: bool = Form(False), liveness_score: float | None = Form(None), db: Session = Depends(get_db)):
     now = datetime.datetime.now().isoformat()
     try:
         sched = ScheduleType(schedule_type)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid schedule_type")
+    if not liveness_ok or (liveness_score is None) or (liveness_score < settings.LIVENESS_MOTION_THRESHOLD):
+        raise HTTPException(status_code=400, detail="Liveness check failed or missing")
     session = ExamSession(
         user_id=user_id,
         started_at=now,
