@@ -38,6 +38,13 @@ Desktop.ini
 
 # Dev databases
 sql_app.db
+sql_app.db-shm
+sql_app.db-wal
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+/.data/
 
 # Python tooling
 .pytest_cache/
