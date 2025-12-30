@@ -1,0 +1,13 @@
+[tool.ruff]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+line-length = 88
+target-version = "py310"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --asyncio-mode=auto"
+testpaths = [
+    ".",
+]
+python_files = ["test_*.py"]

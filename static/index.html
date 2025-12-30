@@ -5,103 +5,201 @@
   <title>Exam Verification Console</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ffd54f'/%3E%3Ctext x='16' y='21' font-size='16' text-anchor='middle' fill='%23000'%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; background:#111; color:#eaeaea; }
-    section { margin-bottom: 24px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 24px; background:#121212; color:#e0e0e0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    h1 { color: #ffffff; margin-bottom: 24px; font-weight: 300; letter-spacing: 1px; }
+    h3 { margin-top: 0; color: #90caf9; border-bottom: 1px solid #333; padding-bottom: 8px; }
+    section { margin-bottom: 24px; width: 100%; max-width: 800px; box-sizing: border-box; }
     input, button { margin: 6px 0; }
-    .row { display: flex; gap: 24px; flex-wrap: wrap; }
-    .card { padding: 12px; border: 1px solid #333; border-radius: 8px; background:#1e1e1e; }
-    button { background:#2d6cdf; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
-    button:hover { background:#1f57c4; }
-    input[type="number"], input[type="text"] { background:#222; color:#eaeaea; border:1px solid #333; border-radius:6px; padding:6px 8px; }
-    input[type="file"] { color:#eaeaea; }
-    .error { color:#ff6b6b; }
-    .ok { color:#8bc34a; }
-    .nav { display:flex; gap:12px; margin-bottom:16px; }
+    .row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+    .card { padding: 20px; border: 1px solid #333; border-radius: 12px; background:#1e1e1e; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    button { background:#1976d2; color:#fff; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; font-weight: 500; transition: background 0.2s; }
+    button:hover { background:#1565c0; }
+    button:disabled { background: #424242; color: #757575; cursor: not-allowed; }
+    button.stop { background: #d32f2f; }
+    button.stop:hover { background: #c62828; }
+    input[type="number"], input[type="text"] { background:#2c2c2c; color:#fff; border:1px solid #444; border-radius:6px; padding:8px 12px; font-size: 14px; width: 200px; }
+    input[type="file"] { color:#aaa; margin-top: 10px; }
+    .nav { display:flex; gap:12px; margin-bottom:24px; flex-wrap: wrap; justify-content: center; }
+    .nav button { background: #333; color: #bbb; }
+    .nav button.active { background: #1976d2; color: #fff; }
     .hidden { display:none; }
+    .status-box { padding: 12px; border-radius: 6px; margin-top: 12px; font-family: monospace; white-space: pre-wrap; font-size: 13px; background: #000; border: 1px solid #333; }
+    .status-box.success { border-color: #2e7d32; color: #81c784; background: #1b5e2022; }
+    .status-box.error { border-color: #c62828; color: #e57373; background: #b71c1c22; }
+    .verified-badge { background: #2e7d32; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; margin-left: 8px; vertical-align: middle; }
+    .cam-container { position: relative; display: inline-block; }
+    video { background: #000; border-radius: 8px; border: 1px solid #333; display: block; }
+    .overlay {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 140px; height: 180px; border: 2px dashed rgba(255, 255, 255, 0.5);
+        border-radius: 50%; pointer-events: none;
+    }
+    label { display: block; margin-bottom: 4px; color: #aaa; font-size: 14px; }
   </style>
 </head>
 <body>
   <h1>Exam Verification Console</h1>
   <div class="nav">
-    <button onclick="show('page1')">1. Register & Enroll</button>
-    <button onclick="show('page2')">2. Start Verification & Exam</button>
-    <button onclick="show('page3')">3. Exam</button>
-    <button onclick="show('page4')">4. End Verification & Sign Off</button>
+    <button id="nav1" onclick="show('page1')">1. Register & Enroll</button>
+    <button id="nav2" onclick="show('page2')">2. Start Verification & Exam</button>
+    <button id="nav3" onclick="show('page3')">3. Exam</button>
+    <button id="nav4" onclick="show('page4')">4. End Verification & Sign Off</button>
   </div>
+  
+  <!-- PAGE 1: REGISTER & ENROLL -->
   <div id="page1">
     <section class="card">
-      <h3>Quick Register User</h3>
-      <button onclick="quickRegister()">Register Random User</button>
-      <div id="registerInfo"></div>
-      <div><label>User ID: <input id="userId" type="number" /></label></div>
-    </section>
-    <section class="card">
-      <h3>Enroll Biometrics</h3>
-      <div class="row">
+      <h3>1. User Registration</h3>
+      <div style="display: flex; gap: 12px; align-items: flex-end;">
         <div>
-          <div><video id="cam" width="320" height="240" autoplay muted playsinline></video></div>
-          <button onclick="startCamera()">Start Camera</button>
-          <button onclick="captureFace()">Capture Face</button>
-          <button id="btnEnrollFace" onclick="enrollFace()">Enroll Face</button>
-          <div>Face: <input id="enrollFaceFile" type="file" accept="image/*"/></div>
-          <div><img id="facePreview" width="160" height="120"/></div>
+           <label>User ID</label>
+           <input id="userId" type="number" placeholder="Enter ID or Register ->" />
         </div>
-        <div>
-          <button onclick="startVoiceRecording()">Start Recording</button>
-          <button onclick="stopVoiceRecording()">Stop Recording</button>
-          <button id="btnEnrollVoice" onclick="enrollVoice()">Enroll Voice</button>
-          <div>Voice: <input id="enrollVoiceFile" type="file" accept="audio/*"/></div>
+        <button onclick="quickRegister()">Auto-Register New User</button>
+      </div>
+      <div id="registerInfo" class="status-box hidden"></div>
+    </section>
+
+    <section class="card">
+      <h3>2. Biometric Enrollment</h3>
+      <div class="row">
+        <!-- FACE ENROLLMENT -->
+        <div style="flex: 1; min-width: 300px;">
+          <h4>Face Enrollment</h4>
+          <div class="cam-container">
+            <video id="cam" width="320" height="240" autoplay muted playsinline></video>
+            <div class="overlay"></div>
+          </div>
+          <div style="margin-top: 8px;">
+            <button onclick="startCamera()">Start Camera</button>
+            <button class="stop" onclick="stopCamera()">Stop Camera</button>
+            <button onclick="captureFace()">Capture Frame</button>
+          </div>
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">
+            <img id="facePreview" width="80" height="60" style="vertical-align: middle; background: #000; border: 1px solid #444; margin-right: 8px;"/>
+            <button id="btnEnrollFace" onclick="enrollFace()">Enroll Face</button>
+          </div>
+          <div style="margin-top: 8px;">
+            <label>Or upload file:</label>
+            <input id="enrollFaceFile" type="file" accept="image/*"/>
+          </div>
+        </div>
+
+        <!-- VOICE ENROLLMENT -->
+        <div style="flex: 1; min-width: 300px;">
+          <h4>Voice Enrollment</h4>
+          <div style="width:100%; height:10px; background:#333; margin:10px 0; border-radius:5px; overflow:hidden;">
+            <div id="audioLevel" style="width:0%; height:100%; background:#4caf50; transition: width 0.1s;"></div>
+          </div>
+          <div>
+            <button onclick="startVoiceRecording()">Start Recording</button>
+            <button class="stop" onclick="stopVoiceRecording()">Stop Recording</button>
+          </div>
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">
+             <button id="btnEnrollVoice" onclick="enrollVoice()">Enroll Voice</button>
+          </div>
+          <div style="margin-top: 8px;">
+            <label>Or upload file:</label>
+            <input id="enrollVoiceFile" type="file" accept="audio/*"/>
+          </div>
         </div>
       </div>
-      <div id="enrollResult"></div>
+      <div id="enrollResult" class="status-box hidden"></div>
     </section>
   </div>
+
+  <!-- PAGE 2: START SESSION & VERIFY -->
   <div id="page2" class="hidden">
     <section class="card">
-      <h3>Start Exam Session</h3>
-      <label>Duration (minutes): <input id="duration" type="number" value="60"/></label><br/>
-      <button id="btnStartSession" onclick="startSession()">Start Session</button>
-      <div id="sessionInfo"></div>
+      <h3>3. Start Exam Session</h3>
+      <div style="display: flex; gap: 12px; align-items: flex-end;">
+        <div>
+          <label>Duration (min)</label>
+          <input id="duration" type="number" value="60"/>
+        </div>
+        <button id="btnStartSession" onclick="startSession()">Start Session</button>
+      </div>
+      <div id="sessionInfo" class="status-box hidden"></div>
     </section>
+
     <div class="row">
       <section class="card">
-        <h3>Start Verification</h3>
-        <div><video id="cam2" width="320" height="240" autoplay muted playsinline></video></div>
-        <button onclick="startCamera2()">Start Camera</button>
-        <button onclick="performLiveness()">Liveness Check</button>
-        <div id="livenessResult"></div>
-        <div>Face: <input id="startFace" type="file" accept="image/*"/></div>
-        <button id="btnVerifyFaceStart" onclick="verifyFace('start')">Verify Face (Start)</button>
-        <div>Voice: <input id="startVoice" type="file" accept="audio/*"/></div>
-        <button id="btnVerifyVoiceStart" onclick="verifyVoice('start')">Verify Voice (Start)</button>
-        <div id="startResult"></div>
+        <h3>4. Identity Verification (Start)</h3>
+        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+            <div>
+                <div class="cam-container">
+                    <video id="cam2" width="320" height="240" autoplay muted playsinline></video>
+                    <div class="overlay"></div>
+                </div>
+                <div style="margin-top: 8px;">
+                    <button onclick="startCamera2()">Start Camera</button>
+                    <button class="stop" onclick="stopCamera2()">Stop Camera</button>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+                <div style="margin-bottom: 16px;">
+                    <label>Step A: Liveness Check</label>
+                    <button onclick="performLiveness()">Check Liveness (Move Head)</button>
+                    <div id="livenessResult" class="status-box hidden" style="margin-top:4px;"></div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label>Step B: Face Verification</label>
+                    <button id="btnVerifyFaceStart" onclick="verifyFace('start')">Verify Face</button>
+                    <input id="startFace" type="file" accept="image/*" style="width: 100%;"/>
+                </div>
+                <div>
+                    <label>Step C: Voice Verification</label>
+                    <button id="btnVerifyVoiceStart" onclick="verifyVoice('start')">Verify Voice</button>
+                    <input id="startVoice" type="file" accept="audio/*" style="width: 100%;"/>
+                </div>
+            </div>
+        </div>
+        <div id="startResult" class="status-box hidden"></div>
       </section>
     </div>
   </div>
+
+  <!-- PAGE 3: EXAM -->
   <div id="page3" class="hidden">
     <section class="card">
-      <h3>Exam</h3>
-      <button onclick="getMetrics()">Get Metrics</button>
-      <pre id="metrics"></pre>
+      <h3>5. Exam In Progress</h3>
+      <p>The exam session is active. You can monitor metrics here.</p>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <button onclick="getMetrics()">Refresh Metrics Now</button>
+        <span id="autoRefreshBadge" style="font-size:12px; color:#aaa;">Auto-refreshing every 5s...</span>
+      </div>
+      <pre id="metrics" class="status-box" style="min-height: 100px;">Waiting for data...</pre>
     </section>
   </div>
+
+  <!-- PAGE 4: END & SIGN OFF -->
   <div id="page4" class="hidden">
     <div class="row">
       <section class="card">
-        <h3>End Verification</h3>
-        <div>Face: <input id="endFace" type="file" accept="image/*"/></div>
-        <button id="btnVerifyFaceEnd" onclick="verifyFace('end')">Verify Face (End)</button>
-        <div>Voice: <input id="endVoice" type="file" accept="audio/*"/></div>
-        <button id="btnVerifyVoiceEnd" onclick="verifyVoice('end')">Verify Voice (End)</button>
-        <div id="endResult"></div>
+        <h3>6. End Verification</h3>
+        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+            <div style="flex: 1;">
+                <h4>Face Check-out</h4>
+                <input id="endFace" type="file" accept="image/*"/>
+                <button id="btnVerifyFaceEnd" onclick="verifyFace('end')">Verify Face</button>
+            </div>
+            <div style="flex: 1;">
+                <h4>Voice Check-out</h4>
+                <input id="endVoice" type="file" accept="audio/*"/>
+                <button id="btnVerifyVoiceEnd" onclick="verifyVoice('end')">Verify Voice</button>
+            </div>
+        </div>
+        <div id="endResult" class="status-box hidden"></div>
       </section>
     </div>
     <section class="card">
-      <h3>Sign Off</h3>
-      <button id="btnSubmitSession" onclick="submitSession()">Submit Session</button>
-      <div id="submitInfo"></div>
+      <h3>7. Sign Off</h3>
+      <button id="btnSubmitSession" onclick="submitSession()">Submit & Close Session</button>
+      <button onclick="downloadReport()" style="background:#555; margin-left:12px;">Download Report</button>
+      <div id="submitInfo" class="status-box hidden"></div>
     </section>
   </div>
+
   <script>
     const base = '/api/v1';
     let sessionId = null;
@@ -119,61 +217,100 @@
     let camStream2 = null;
     let lFrame1 = null;
     let lFrame2 = null;
+    let metricsInterval = null;
+
     function show(id) {
-      document.getElementById('page1').classList.add('hidden');
-      document.getElementById('page2').classList.add('hidden');
-      document.getElementById('page3').classList.add('hidden');
-      document.getElementById('page4').classList.add('hidden');
+      ['page1', 'page2', 'page3', 'page4'].forEach(p => document.getElementById(p).classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
+      
+      // Update nav styling
+      ['nav1', 'nav2', 'nav3', 'nav4'].forEach(n => document.getElementById(n).classList.remove('active'));
+      document.getElementById('nav' + id.replace('page', '')).classList.add('active');
+      
+      // Auto-refresh logic
+      if (id === 'page3') {
+          if (!metricsInterval) metricsInterval = setInterval(getMetrics, 5000);
+          getMetrics();
+      } else {
+          if (metricsInterval) { clearInterval(metricsInterval); metricsInterval = null; }
+      }
+
       updateUI();
     }
+
+    function showStatus(elementId, data, isError = false) {
+        const el = document.getElementById(elementId);
+        el.classList.remove('hidden', 'success', 'error');
+        el.classList.add(isError ? 'error' : 'success');
+        
+        if (typeof data === 'object') {
+            el.innerText = JSON.stringify(data, null, 2);
+        } else {
+            el.innerText = data;
+        }
+    }
+
     function loadPersisted() {
       const savedUser = localStorage.getItem('userId');
       if (savedUser) {
         document.getElementById('userId').value = savedUser;
         state.userId = parseInt(savedUser);
       }
+      
+      // Session Recovery
+      const savedSession = localStorage.getItem('sessionId');
+      if (savedSession) {
+          sessionId = parseInt(savedSession);
+          state.sessionId = sessionId;
+          // Optimistically assume we are in exam if session exists
+          // In real app, we'd check status with backend
+          showStatus('sessionInfo', `Restored Session ID: ${sessionId}`);
+      }
     }
+
     function updateUI() {
       const userOk = !!document.getElementById('userId').value;
       document.getElementById('btnEnrollFace').disabled = !userOk;
       document.getElementById('btnEnrollVoice').disabled = !userOk;
+      
       const canStartSession = userOk && state.enrolled.face && state.enrolled.voice && state.liveness.ok;
       const btnStartSession = document.getElementById('btnStartSession');
       if (btnStartSession) btnStartSession.disabled = !canStartSession;
+      
       const canStartVerify = !!sessionId && state.enrolled.face && state.enrolled.voice && state.liveness.ok;
       const b1 = document.getElementById('btnVerifyFaceStart'); if (b1) b1.disabled = !canStartVerify;
       const b2 = document.getElementById('btnVerifyVoiceStart'); if (b2) b2.disabled = !canStartVerify;
+      
       const canEndVerify = !!sessionId;
       const b3 = document.getElementById('btnVerifyFaceEnd'); if (b3) b3.disabled = !canEndVerify;
       const b4 = document.getElementById('btnVerifyVoiceEnd'); if (b4) b4.disabled = !canEndVerify;
       const b5 = document.getElementById('btnSubmitSession'); if (b5) b5.disabled = !sessionId;
     }
+
     function quickRegister() {
       const email = `user_${Date.now()}@example.com`;
       const payload = { email, full_name: "", password: "Password123!" };
       fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(r => r.json()).then(j => {
-          const el = document.getElementById('registerInfo');
           if (j && j.id) {
             document.getElementById('userId').value = j.id;
             state.userId = j.id;
             localStorage.setItem('userId', String(j.id));
-            el.innerText = JSON.stringify({ registered: true, user_id: j.id, email: j.email });
-            el.className = 'ok';
+            showStatus('registerInfo', `User Registered Successfully!\nID: ${j.id}\nEmail: ${j.email}`);
             updateUI();
           } else {
-            el.innerText = JSON.stringify(j);
-            el.className = 'error';
+            showStatus('registerInfo', j, true);
           }
-        }).catch(e => {
-          const el = document.getElementById('registerInfo');
-          el.innerText = String(e);
-          el.className = 'error';
-        });
+        }).catch(e => showStatus('registerInfo', String(e), true));
     }
+
     document.addEventListener('DOMContentLoaded', () => {
       loadPersisted();
+      if (sessionId) {
+          show('page2'); // If session exists, go to page 2 or 3
+      } else {
+          show('page1');
+      }
       const uid = document.getElementById('userId');
       uid.addEventListener('input', () => {
         localStorage.setItem('userId', String(uid.value || ''));
@@ -181,12 +318,12 @@
         updateUI();
       });
     });
+
     function startSession() {
       const userId = document.getElementById('userId').value;
       const duration = document.getElementById('duration').value;
       if (!userId || isNaN(parseInt(userId))) {
-        document.getElementById('sessionInfo').innerText = JSON.stringify({error:'Provide a valid numeric user_id'});
-        document.getElementById('sessionInfo').className = 'error';
+        showStatus('sessionInfo', 'Provide a valid numeric user_id', true);
         return;
       }
       const fd = new FormData();
@@ -197,40 +334,68 @@
       fd.append('liveness_score', String(state.liveness.score));
       fetch(`${base}/exam/session/start`, { method: 'POST', body: fd })
         .then(r => r.json()).then(j => {
-          const el = document.getElementById('sessionInfo');
           if (j && j.session_id) {
             sessionId = j.session_id; state.sessionId = sessionId;
-            el.innerText = JSON.stringify(j); el.className = 'ok';
+            localStorage.setItem('sessionId', String(sessionId));
+            showStatus('sessionInfo', `Session Started!\nID: ${j.session_id}\nStatus: ${j.status}`);
             updateUI();
           } else {
-            el.innerText = JSON.stringify(j); el.className = 'error';
+            showStatus('sessionInfo', j, true);
           }
         });
     }
+
     async function startCamera() {
       try {
         camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         document.getElementById('cam').srcObject = camStream;
-      } catch {}
+      } catch (e) { alert("Could not start camera: " + e); }
     }
+
+    function stopCamera() {
+        if (camStream) {
+            camStream.getTracks().forEach(track => track.stop());
+            camStream = null;
+            document.getElementById('cam').srcObject = null;
+        }
+    }
+
     async function startCamera2() {
       try {
         camStream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         document.getElementById('cam2').srcObject = camStream2;
-      } catch {}
+      } catch (e) { alert("Could not start camera: " + e); }
     }
+
+    function stopCamera2() {
+        if (camStream2) {
+            camStream2.getTracks().forEach(track => track.stop());
+            camStream2 = null;
+            document.getElementById('cam2').srcObject = null;
+        }
+    }
+
     function captureFace() {
       const v = document.getElementById('cam');
-      if (!v.srcObject) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Camera not started'}); return; }
+      if (!v.srcObject) { showStatus('enrollResult', 'Camera not started', true); return; }
       const c = document.createElement('canvas'); c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
       const ctx = c.getContext('2d'); ctx.drawImage(v, 0, 0, c.width, c.height);
-      c.toBlob(b => { faceBlob = b; document.getElementById('enrollResult').innerText = JSON.stringify({face:'captured'}); const prev = document.getElementById('facePreview'); prev.src = URL.createObjectURL(b); }, 'image/jpeg', 0.92);
+      c.toBlob(b => { 
+          faceBlob = b; 
+          showStatus('enrollResult', 'Face captured! Ready to enroll.');
+          const prev = document.getElementById('facePreview'); 
+          prev.src = URL.createObjectURL(b); 
+      }, 'image/jpeg', 0.92);
     }
+
     function performLiveness() {
       const v = document.getElementById('cam2');
-      if (!v.srcObject) { document.getElementById('livenessResult').innerText = JSON.stringify({error:'Start camera'}); document.getElementById('livenessResult').className = 'error'; return; }
+      if (!v.srcObject) { showStatus('livenessResult', 'Start camera first', true); return; }
       const c = document.createElement('canvas'); c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
       const ctx = c.getContext('2d'); ctx.drawImage(v, 0, 0, c.width, c.height);
+      
+      showStatus('livenessResult', 'Checking liveness... Please MOVE your head slightly...');
+      
       c.toBlob(b => { lFrame1 = b; setTimeout(() => {
         const c2 = document.createElement('canvas'); c2.width = v.videoWidth || 320; c2.height = v.videoHeight || 240;
         const ctx2 = c2.getContext('2d'); ctx2.drawImage(v, 0, 0, c2.width, c2.height);
@@ -241,16 +406,19 @@
           fd.append('file2', lFrame2, 'f2.jpg');
           fetch(`${base}/verify/authenticate/face/liveness`, { method: 'POST', body: fd })
             .then(r => r.json()).then(j => {
-              const el = document.getElementById('livenessResult');
-              el.innerText = JSON.stringify(j);
-              el.className = j.liveness ? 'ok' : 'error';
               state.liveness.ok = Boolean(j.liveness);
               state.liveness.score = Number(j.score || 0);
+              if (state.liveness.ok) {
+                  showStatus('livenessResult', `Liveness Confirmed! Score: ${j.score.toFixed(2)}`);
+              } else {
+                  showStatus('livenessResult', `Liveness Failed. Score: ${j.score.toFixed(2)} (Need > ${j.threshold})`, true);
+              }
               updateUI();
             });
         }, 'image/jpeg', 0.92);
       }, 1000); }, 'image/jpeg', 0.92);
     }
+
     function startVoiceRecording() {
       navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(s => {
         voiceSamples = []; voiceBlob = null;
@@ -258,114 +426,206 @@
         voiceSampleRate = audioCtx.sampleRate || 44100;
         audioSource = audioCtx.createMediaStreamSource(s);
         scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+        
+        // Visualizer
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        audioSource.connect(analyser);
+
+        const visualizer = () => {
+             if(!audioCtx) return;
+             requestAnimationFrame(visualizer);
+             analyser.getByteFrequencyData(dataArray);
+             let sum = 0;
+             for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+             let avg = sum / bufferLength;
+             let width = Math.min(100, (avg / 128) * 100);
+             document.getElementById('audioLevel').style.width = width + '%';
+        };
+        visualizer();
+
         scriptNode.onaudioprocess = e => {
           const ch = e.inputBuffer.getChannelData(0);
           voiceSamples.push(new Float32Array(ch));
         };
         audioSource.connect(scriptNode);
         scriptNode.connect(audioCtx.destination);
-      }).catch(() => {});
+      }).catch((e) => showStatus('enrollResult', "Mic Error: " + e, true));
     }
+
     function stopVoiceRecording() {
       try {
         if (audioSource) audioSource.disconnect();
         if (scriptNode) scriptNode.disconnect();
-        if (audioCtx) audioCtx.close();
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        document.getElementById('audioLevel').style.width = '0%';
       } catch {}
+      
+      if (voiceSamples.length === 0) return;
+
       const all = mergeFloat32(voiceSamples);
       const wav = encodeWAV(all, voiceSampleRate);
       const dur = all.length / voiceSampleRate;
       let rms = 0.0;
       for (let i = 0; i < all.length; i++) rms += all[i] * all[i];
       rms = Math.sqrt(rms / Math.max(1, all.length));
-      const okDur = dur >= 1.0;
-      const okAmp = rms >= 0.02;
-      if (!okDur || !okAmp) {
-        document.getElementById('enrollResult').innerText = JSON.stringify({error:'Voice too short or too quiet', duration_s: dur.toFixed(2), rms: rms.toFixed(4)});
-        document.getElementById('enrollResult').className = 'error';
+      
+      if (dur < 2.0 || rms < 0.02) {
+        showStatus('enrollResult', `Voice too short (${dur.toFixed(2)}s) or quiet. Speak longer/louder.`, true);
         voiceBlob = null;
         return;
       }
       voiceBlob = new Blob([wav], { type: 'audio/wav' });
-      document.getElementById('enrollResult').innerText = JSON.stringify({voice:'recorded', duration_s: dur.toFixed(2), rms: rms.toFixed(4)});
+      showStatus('enrollResult', `Voice Captured: ${dur.toFixed(2)}s`);
     }
+
     function enrollFace() {
       const userId = document.getElementById('userId').value;
-      if (!userId || isNaN(parseInt(userId))) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); document.getElementById('enrollResult').className = 'error'; return; }
+      if (!userId || isNaN(parseInt(userId))) { showStatus('enrollResult', 'Provide a valid numeric user_id', true); return; }
       const fileInput = document.getElementById('enrollFaceFile');
       const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : faceBlob;
-      const fd = new FormData(); fd.append('user_id', userId);
-      if (!file) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'No face file'}); return; }
+      if (!file) { showStatus('enrollResult', 'No face captured or file selected', true); return; }
+      
+      const fd = new FormData(); 
+      fd.append('user_id', userId);
       fd.append('file', file, file.name || 'capture.jpg');
-      fetch(`${base}/enroll/face`, { method: 'POST', body: fd }).then(r => r.json()).then(j => { const el = document.getElementById('enrollResult'); el.innerText = JSON.stringify(j); el.className = j.mock_used ? '' : 'ok'; if (j && j.biometric_id) { state.enrolled.face = true; updateUI(); } });
+      
+      fetch(`${base}/enroll/face`, { method: 'POST', body: fd }).then(r => r.json()).then(j => { 
+          if (j && j.biometric_id) { 
+              state.enrolled.face = true; 
+              showStatus('enrollResult', `Face Enrolled Successfully! (ID: ${j.biometric_id})`);
+              updateUI(); 
+          } else {
+              showStatus('enrollResult', j, true);
+          }
+      });
     }
+
     function enrollVoice() {
       const userId = document.getElementById('userId').value;
-      if (!userId || isNaN(parseInt(userId))) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); document.getElementById('enrollResult').className = 'error'; return; }
+      if (!userId || isNaN(parseInt(userId))) { showStatus('enrollResult', 'Provide a valid numeric user_id', true); return; }
       const fileInput = document.getElementById('enrollVoiceFile');
       const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : voiceBlob;
-      const fd = new FormData(); fd.append('user_id', userId);
-      if (!file) { document.getElementById('enrollResult').innerText = JSON.stringify({error:'No voice file'}); return; }
+      if (!file) { showStatus('enrollResult', 'No voice recorded or file selected', true); return; }
+      
+      const fd = new FormData(); 
+      fd.append('user_id', userId);
       fd.append('file', file, file.name || 'capture.wav');
-      fetch(`${base}/enroll/voice`, { method: 'POST', body: fd }).then(r => r.json()).then(j => { const el = document.getElementById('enrollResult'); el.innerText = JSON.stringify(j); el.className = j.mock_used ? '' : 'ok'; if (j && j.biometric_id) { state.enrolled.voice = true; updateUI(); } });
+      
+      fetch(`${base}/enroll/voice`, { method: 'POST', body: fd }).then(r => r.json()).then(j => { 
+          if (j && j.biometric_id) { 
+              state.enrolled.voice = true; 
+              showStatus('enrollResult', `Voice Enrolled Successfully! (ID: ${j.biometric_id})`);
+              updateUI(); 
+          } else {
+              showStatus('enrollResult', j, true);
+          }
+      });
     }
+
     function submitSession() {
       const userId = document.getElementById('userId').value;
-      if (!sessionId) { document.getElementById('submitInfo').innerText = JSON.stringify({error:'Start a session first'}); document.getElementById('submitInfo').className = 'error'; return; }
+      if (!sessionId) { showStatus('submitInfo', 'Start a session first', true); return; }
       const fd = new FormData();
       fd.append('user_id', userId);
       fd.append('session_id', sessionId);
       fetch(`${base}/exam/session/submit`, { method: 'POST', body: fd })
-        .then(r => r.json()).then(j => { const el = document.getElementById('submitInfo'); el.innerText = JSON.stringify(j); el.className = 'ok'; });
+        .then(r => r.json()).then(j => { 
+            showStatus('submitInfo', `Session Closed! Status: ${j.status}`);
+            localStorage.removeItem('sessionId'); // Clear session
+        });
     }
+
+    function downloadReport() {
+        if (!sessionId) { showStatus('submitInfo', 'No session to report', true); return; }
+        
+        fetch(`${base}/exam/session/${sessionId}/details`)
+            .then(r => r.json())
+            .then(details => {
+                 // Combine summary metrics and details
+                 fetch(`${base}/exam/metrics/session/${sessionId}`)
+                    .then(r => r.json())
+                    .then(metrics => {
+                        const report = {
+                            summary: metrics,
+                            detailed_log: details.log,
+                            generated_at: new Date().toISOString()
+                        };
+                        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `exam_report_session_${sessionId}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    });
+            })
+            .catch(e => {
+                showStatus('submitInfo', "Failed to download report: " + e, true);
+            });
+    }
+
     function verifyFace(phase) {
       const userId = document.getElementById('userId').value;
-      if (!userId || isNaN(parseInt(userId))) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); el.className = 'error'; return; }
-      if (!sessionId) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Start a session first'}); el.className = 'error'; return; }
+      const elId = phase === 'start' ? 'startResult' : 'endResult';
+      
+      if (!userId || isNaN(parseInt(userId))) { showStatus(elId, 'Provide a valid numeric user_id', true); return; }
+      if (!sessionId) { showStatus(elId, 'Start a session first', true); return; }
+      
       const input = phase === 'start' ? document.getElementById('startFace') : document.getElementById('endFace');
-      const fd = new FormData();
-      fd.append('user_id', userId);
-      fd.append('session_id', sessionId);
       let file = input.files && input.files[0];
       if (!file && faceBlob) file = faceBlob;
-      if (!file) {
-        const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
-        el.innerText = JSON.stringify({error: 'No file selected'});
-        return;
-      }
-      fd.append('file', file, file.name || 'capture.jpg');
-      fetch(`${base}/verify/authenticate/face/${phase}`, { method: 'POST', body: fd })
-        .then(r => r.json()).then(j => {
-          const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
-          el.innerText = JSON.stringify(j);
-          el.className = j.mock_used ? '' : 'ok';
-          if (phase === 'start' && j && j.match) { state.verifiedStart.face = true; }
-        });
-    }
-    function verifyVoice(phase) {
-      const userId = document.getElementById('userId').value;
-      if (!userId || isNaN(parseInt(userId))) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Provide a valid numeric user_id'}); el.className = 'error'; return; }
-      if (!sessionId) { const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult'); el.innerText = JSON.stringify({error:'Start a session first'}); el.className = 'error'; return; }
-      const input = phase === 'start' ? document.getElementById('startVoice') : document.getElementById('endVoice');
+      if (!file) { showStatus(elId, 'No file selected (capture or upload)', true); return; }
+      
       const fd = new FormData();
       fd.append('user_id', userId);
       fd.append('session_id', sessionId);
-      let file = input.files && input.files[0];
-      if (!file && voiceBlob) file = voiceBlob;
-      if (!file) {
-        const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
-        el.innerText = JSON.stringify({error: 'No file selected'});
-        return;
-      }
-      fd.append('file', file, file.name || 'capture.wav');
-      fetch(`${base}/verify/authenticate/voice/${phase}`, { method: 'POST', body: fd })
+      fd.append('file', file, file.name || 'capture.jpg');
+      
+      fetch(`${base}/verify/authenticate/face/${phase}`, { method: 'POST', body: fd })
         .then(r => r.json()).then(j => {
-          const el = phase === 'start' ? document.getElementById('startResult') : document.getElementById('endResult');
-          el.innerText = JSON.stringify(j);
-          el.className = j.mock_used ? '' : 'ok';
-          if (phase === 'start' && j && j.match) { state.verifiedStart.voice = true; }
+          if (phase === 'start' && j && j.match) { state.verifiedStart.face = true; }
+          
+          if (j.match) {
+             showStatus(elId, `✅ VERIFICATION SUCCESSFUL\nScore: ${j.score.toFixed(4)}\nThreshold: ${j.threshold}`);
+          } else {
+             showStatus(elId, `❌ VERIFICATION FAILED\nScore: ${j.score ? j.score.toFixed(4) : 'N/A'}\nThreshold: ${j.threshold}`, true);
+          }
         });
     }
+
+    function verifyVoice(phase) {
+      const userId = document.getElementById('userId').value;
+      const elId = phase === 'start' ? 'startResult' : 'endResult';
+
+      if (!userId || isNaN(parseInt(userId))) { showStatus(elId, 'Provide a valid numeric user_id', true); return; }
+      if (!sessionId) { showStatus(elId, 'Start a session first', true); return; }
+      
+      const input = phase === 'start' ? document.getElementById('startVoice') : document.getElementById('endVoice');
+      let file = input.files && input.files[0];
+      if (!file && voiceBlob) file = voiceBlob;
+      if (!file) { showStatus(elId, 'No file selected (record or upload)', true); return; }
+      
+      const fd = new FormData();
+      fd.append('user_id', userId);
+      fd.append('session_id', sessionId);
+      fd.append('file', file, file.name || 'capture.wav');
+      
+      fetch(`${base}/verify/authenticate/voice/${phase}`, { method: 'POST', body: fd })
+        .then(r => r.json()).then(j => {
+          if (phase === 'start' && j && j.match) { state.verifiedStart.voice = true; }
+          
+          if (j.match) {
+             showStatus(elId, `✅ VERIFICATION SUCCESSFUL\nScore: ${j.score.toFixed(4)}\nThreshold: ${j.threshold}`);
+          } else {
+             showStatus(elId, `❌ VERIFICATION FAILED\nScore: ${j.score ? j.score.toFixed(4) : 'N/A'}\nThreshold: ${j.threshold}`, true);
+          }
+        });
+    }
+
     function mergeFloat32(chunks) {
       let total = 0; for (let i = 0; i < chunks.length; i++) total += chunks[i].length;
       const result = new Float32Array(total);
@@ -411,9 +671,12 @@
       for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
     }
     function getMetrics() {
+      if (!sessionId) {
+        showStatus('metrics', "No active session. Please start a session first.", true);
+        return;
+      }
       fetch(`${base}/exam/metrics/session/${sessionId}`).then(r => r.json()).then(j => { document.getElementById('metrics').innerText = JSON.stringify(j, null, 2); });
     }
-    show('page1');
   </script>
-  </body>
-  </html>
+</body>
+</html>

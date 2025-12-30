@@ -1,6 +1,18 @@
 import cv2
 import numpy as np
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+HAS_DEEPFACE = False
+try:
+    from deepface import DeepFace
+    HAS_DEEPFACE = True
+except ImportError:
+    pass
 
 def _detect_face(image_bgr):
     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
@@ -23,9 +35,46 @@ def _detect_face(image_bgr):
     return image_bgr[y:y+h, x:x+w]
 
 def compute_embedding(image_bytes: bytes) -> list[float]:
-    img = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+    """
+    Computes a face embedding.
+    Priority:
+    1. DeepFace (VGG-Face) - High Accuracy
+    2. OpenCV ORB - Low Accuracy (Fallback)
+    """
+    # Decode image
+    img_array = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     if img is None:
         return None
+
+    # Try DeepFace
+    if HAS_DEEPFACE:
+        try:
+            # DeepFace expects path or numpy array (BGR is fine for opencv backend, but DeepFace usually prefers RGB)
+            # DeepFace.represent returns a list of dicts
+            # enforce_detection=False allows it to process the image even if it can't find a clear face (it uses the whole img)
+            # but for security we might want enforce_detection=True. 
+            # However, _detect_face above is a Haar cascade which is fast. 
+            # Let's let DeepFace handle detection if possible, or skip it.
+            
+            # Convert BGR to RGB for DeepFace
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            
+            embeddings = DeepFace.represent(
+                img_path=img_rgb,
+                model_name="VGG-Face",
+                enforce_detection=False,
+                detector_backend="opencv"
+            )
+            
+            if embeddings and len(embeddings) > 0:
+                # Return the first face's embedding
+                return embeddings[0]["embedding"]
+        except Exception as e:
+            logger.warning(f"DeepFace failed: {e}")
+            pass
+
+    # Fallback: ORB (Legacy/POC method)
     face = _detect_face(img)
     face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
     face_gray = cv2.resize(face_gray, (224, 224), interpolation=cv2.INTER_AREA)
@@ -40,6 +89,7 @@ def compute_embedding(image_bytes: bytes) -> list[float]:
             vec[:flat.size] = flat
     else:
         vec[:] = face_gray.flatten().astype(np.float32)[:512]
+    
     norm = np.linalg.norm(vec)
     if norm > 1e-6:
         vec = vec / norm

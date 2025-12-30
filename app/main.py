@@ -8,16 +8,24 @@ from app.db.session import engine
 from fastapi.middleware.cors import CORSMiddleware
 
 # Create tables (for dev only - use Alembic in prod)
-Base.metadata.create_all(bind=engine)
+if settings.DEBUG:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# CORS Configuration
+origins = ["*"] if settings.DEBUG else [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

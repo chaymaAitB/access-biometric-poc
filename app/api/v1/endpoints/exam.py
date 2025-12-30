@@ -55,3 +55,21 @@ def session_metrics(session_id: int, db: Session = Depends(get_db)):
     frr = failures / total if total > 0 else None
     far = None
     return {"session_id": session_id, "events": total, "frr": frr, "far": far}
+
+@router.get("/session/{session_id}/details")
+def session_details(session_id: int, db: Session = Depends(get_db)):
+    events = db.query(VerificationEvent).filter(VerificationEvent.session_id == session_id).all()
+    data = []
+    for e in events:
+        data.append({
+            "id": e.id,
+            "modality": e.modality,
+            "phase": e.phase,
+            "match": e.match,
+            "score": e.score,
+            "threshold": e.threshold,
+            "metric": e.metric,
+            "mock_used": e.mock_used,
+            "created_at": e.created_at
+        })
+    return {"session_id": session_id, "log": data}
